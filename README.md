@@ -84,7 +84,7 @@ export const API_BASE_URL = "https://<your-ngrok-url>.ngrok-free.app";
 ## 📌 주요 기능
 
 * 현재 위치 가져오기
-* 출발지/도착지 설정
+* 도착지 설정
 * 이동 거리 계산
 * 절감된 CO₂ 양 계산
 * 세션 저장 및 조회
@@ -98,6 +98,4 @@ export const API_BASE_URL = "https://<your-ngrok-url>.ngrok-free.app";
   실제 배포 전에는 EAS Build 또는 Bare Workflow로 전환해야 합니다.
 * ngrok URL은 매 실행마다 변경됩니다.
   프론트엔드 API 주소를 새 ngrok 주소로 업데이트해야 합니다.
-
-```
 
