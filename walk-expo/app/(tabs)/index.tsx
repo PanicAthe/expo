@@ -1,7 +1,7 @@
 // app/index.tsx
-import * as Location from 'expo-location';
-import * as Notifications from 'expo-notifications';
-import React, { useEffect, useRef, useState } from 'react';
+import * as Location from "expo-location";
+import * as Notifications from "expo-notifications";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -12,17 +12,18 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
-import styles from '../css/styles';
-import { BG_TASK } from '../tasks/locationTask';
+} from "react-native";
+import styles from "../css/styles";
+import { BG_TASK } from "../tasks/locationTask";
 
-// 서버 주소 (ngrok에서 발급받은 https 주소 입력)
-const SERVER_URL = 'https://53dd24ca7d9e.ngrok-free.app'; // 예: 'https://53dd24ca7d9e.ngrok-free.app'
-
+const SERVER_URL = "https://c9e6a861a0b3.ngrok-free.app";
 const RADIUS_M = 120;
 const CO2_PER_KM = 0.17;
 
-function distMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+function distMeters(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number }
+) {
   const toRad = (x: number) => (x * Math.PI) / 180;
   const R = 6371000;
   const dLat = toRad(b.lat - a.lat);
@@ -36,25 +37,26 @@ function distMeters(a: { lat: number; lng: number }, b: { lat: number; lng: numb
 }
 
 export default function Home() {
-  const [destLat, setDestLat] = useState('');
-  const [destLng, setDestLng] = useState('');
+  const [destLat, setDestLat] = useState("");
+  const [destLng, setDestLng] = useState("");
   const [tracking, setTracking] = useState(false);
   const [arrived, setArrived] = useState(false);
   const [distanceKm, setDistanceKm] = useState(0);
   const [cur, setCur] = useState<{ lat: number; lng: number } | null>(null);
   const [distToDest, setDistToDest] = useState<number | null>(null);
   const [permissionGranted, setPermissionGranted] = useState(false);
-
   const [sessionId, setSessionId] = useState<number | null>(null);
+
+  const [editingDest, setEditingDest] = useState(true); // 도착지 입력창 상태
 
   const lastRef = useRef<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     (async () => {
       await Notifications.requestPermissionsAsync();
-      if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('default', {
-          name: 'default',
+      if (Platform.OS === "android") {
+        await Notifications.setNotificationChannelAsync("default", {
+          name: "default",
           importance: Notifications.AndroidImportance.DEFAULT,
         });
       }
@@ -62,18 +64,16 @@ export default function Home() {
   }, []);
 
   const requestLocationPermission = async () => {
-    console.log('권한 요청 버튼 클릭됨');
     const f = await Location.requestForegroundPermissionsAsync();
-    if (f.status !== 'granted') {
-      Alert.alert('권한 필요', '위치 권한을 허용해주세요.');
+    if (f.status !== "granted") {
+      Alert.alert("권한 필요", "위치 권한을 허용해주세요.");
       return;
     }
 
     try {
-      const b = await Location.requestBackgroundPermissionsAsync();
-      console.log('백그라운드 권한:', b.status);
+      await Location.requestBackgroundPermissionsAsync();
     } catch (e) {
-      console.log('Expo Go에서는 백그라운드 권한 제한');
+      console.log("Expo Go에서는 백그라운드 권한 제한");
     }
 
     setPermissionGranted(true);
@@ -106,8 +106,8 @@ export default function Home() {
 
     if (sessionId) {
       await fetch(`${SERVER_URL}/api/sessions/${sessionId}/complete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           distanceKm,
           co2SavedKg: co2,
@@ -118,8 +118,10 @@ export default function Home() {
 
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: '도착!',
-        body: `도보 ${distanceKm.toFixed(2)} km, 탄소 ${co2.toFixed(2)} kg 절감`,
+        title: "도착!",
+        body: `도보 ${distanceKm.toFixed(2)} km, 탄소 ${co2.toFixed(
+          2
+        )} kg 절감`,
       },
       trigger: null,
     });
@@ -127,11 +129,11 @@ export default function Home() {
 
   const start = async () => {
     if (!permissionGranted || !cur) {
-      Alert.alert('권한 필요', '먼저 위치 권한을 허용하세요.');
+      Alert.alert("권한 필요", "먼저 위치 권한을 허용하세요.");
       return;
     }
     if (!destLat || !destLng) {
-      Alert.alert('도착지 필요', '도착지 위도/경도를 입력하세요.');
+      Alert.alert("도착지 필요", "도착지 위도/경도를 입력하세요.");
       return;
     }
 
@@ -139,11 +141,12 @@ export default function Home() {
     setArrived(false);
     setDistanceKm(0);
     lastRef.current = null;
+    setEditingDest(false); // 입력창 닫기
 
     try {
       const res = await fetch(`${SERVER_URL}/api/sessions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           startLat: cur.lat,
           startLng: cur.lng,
@@ -153,9 +156,8 @@ export default function Home() {
       });
       const data = await res.json();
       setSessionId(data.id);
-      console.log('세션 생성됨:', data);
     } catch (err) {
-      console.error('세션 생성 실패', err);
+      console.error("세션 생성 실패", err);
     }
 
     await Location.watchPositionAsync(
@@ -170,15 +172,22 @@ export default function Home() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
       <SafeAreaView style={styles.container}>
         <Text style={styles.title}>Walk Saver (Expo)</Text>
         <ScrollView keyboardShouldPersistTaps="handled">
+          {/* 권한 */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>현재 위치 권한</Text>
-            <Pressable style={styles.button} onPress={requestLocationPermission}>
+            <Pressable
+              style={styles.button}
+              onPress={requestLocationPermission}
+            >
               <Text style={styles.buttonText}>
-                {permissionGranted ? '권한 허용됨' : '권한 요청'}
+                {permissionGranted ? "권한 허용됨" : "권한 요청"}
               </Text>
             </Pressable>
             {cur && (
@@ -188,37 +197,79 @@ export default function Home() {
             )}
           </View>
 
+          {/* 도착지 입력 / 표시 */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>도착지 설정</Text>
-            <TextInput
-              placeholder="위도"
-              value={destLat}
-              onChangeText={setDestLat}
-              keyboardType="decimal-pad"
-              style={styles.input}
-            />
-            <TextInput
-              placeholder="경도"
-              value={destLng}
-              onChangeText={setDestLng}
-              keyboardType="decimal-pad"
-              style={styles.input}
-            />
-            <Pressable
-              style={[styles.button, (!permissionGranted || tracking) && styles.buttonDisabled]}
-              onPress={start}
-              disabled={!permissionGranted || tracking}
-            >
-              <Text style={styles.buttonText}>
-                {tracking ? '추적 중...' : '출발'}
-              </Text>
-            </Pressable>
+            {editingDest ? (
+              <>
+                <TextInput
+                  placeholder="위도"
+                  value={destLat}
+                  onChangeText={setDestLat}
+                  keyboardType="decimal-pad"
+                  style={styles.input}
+                />
+                <TextInput
+                  placeholder="경도"
+                  value={destLng}
+                  onChangeText={setDestLng}
+                  keyboardType="decimal-pad"
+                  style={styles.input}
+                />
+                <Pressable
+                  style={[
+                    styles.button,
+                    (!permissionGranted || tracking) && styles.buttonDisabled,
+                  ]}
+                  onPress={start}
+                  disabled={!permissionGranted || tracking}
+                >
+                  <Text style={styles.buttonText}>
+                    {tracking ? "추적 중..." : "출발"}
+                  </Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Text style={styles.kv}>
+                  위도: {parseFloat(destLat).toFixed(6)}, 경도:{" "}
+                  {parseFloat(destLng).toFixed(6)}
+                </Text>
+                <Pressable
+                  style={styles.button}
+                  onPress={() => setEditingDest(true)}
+                >
+                  <Text style={styles.buttonText}>도착지 다시 설정</Text>
+                </Pressable>
+              </>
+            )}
           </View>
 
-          {distToDest !== null && (
+          {/* 거리 표시 */}
+          {distToDest !== null && !arrived && (
             <View style={styles.card}>
               <Text style={styles.cardTitle}>
                 도착지까지 {distToDest.toFixed(1)} m
+              </Text>
+            </View>
+          )}
+
+          {/* 도착 완료 */}
+          {arrived && (
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: "#d4edda", borderColor: "#28a745" },
+              ]}
+            >
+              <Text style={[styles.cardTitle, { color: "#155724" }]}>
+                ✅ 도착 완료!
+              </Text>
+              <Text style={styles.kv}>
+                총 이동 거리: {distanceKm.toFixed(2)} km
+              </Text>
+              <Text style={styles.kv}>
+                절감한 탄소: {(distanceKm * CO2_PER_KM).toFixed(2)} kg
               </Text>
             </View>
           )}
